@@ -17,7 +17,7 @@ typedef struct Request {
 
 
 typedef struct {
-    Request* head, *tail;
+    	Request* head, *tail;
 } Queue;
 
 
@@ -47,56 +47,67 @@ void dequeue(Queue* queue){
 
 
 int parseDate(char* dateStr) {
-    char* tmp;
 	struct tm timeOfCurRequest;
 
-	timeOfCurRequest.tm_mday = atoi(strtok_r(dateStr, "/", &tmp));
+	timeOfCurRequest.tm_mday = atoi(strtok(dateStr, "/"));
 
-	char* strOfMonth = strtok_r(NULL, "/", &tmp);
-	char* months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-	for (int monthsCount = 0; monthsCount < 12; ++monthsCount)
-		if (strcmp(months[monthsCount], strOfMonth) == 0)
-			timeOfCurRequest.tm_mon = monthsCount;
+	char* strOfMonth = strtok(NULL, "/");
 
-	timeOfCurRequest.tm_year = - 1900 + atoi(strtok_r(NULL, ":", &tmp));
-	timeOfCurRequest.tm_hour = atoi(strtok_r(NULL, ":", &tmp));
-	timeOfCurRequest.tm_min = atoi(strtok_r(NULL, ":", &tmp));
-	timeOfCurRequest.tm_sec = atoi(strtok_r(NULL, " ", &tmp));
+	if (strcmp("Jan", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 0;
+	else if (strcmp("Feb", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 1;
+	else if (strcmp("Mar", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 2;
+	else if (strcmp("Apr", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 3;
+	else if (strcmp("May", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 4;
+	else if (strcmp("Jun", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 5;
+	else if (strcmp("Jul", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 6;
+	else if (strcmp("Aug", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 7;
+	else if (strcmp("Sep", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 8;
+	else if (strcmp("Oct", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 9;
+	else if (strcmp("Nov", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 10;
+	else if (strcmp("Dec", strOfMonth) == 0)
+		timeOfCurRequest.tm_mon = 11;
+
+	timeOfCurRequest.tm_year = - 1900 + atoi(strtok(NULL, ":"));
+	timeOfCurRequest.tm_hour = atoi(strtok(NULL, ":"));
+	timeOfCurRequest.tm_min = atoi(strtok(NULL, ":"));
+	timeOfCurRequest.tm_sec = atoi(strtok(NULL, " "));
 
 	return mktime(&timeOfCurRequest);
 }
 
 
-char* scanStr(FILE* logFile, int strLength, int* ifLast) {
-	int character = getc(logFile);
-	char* parsingStr;
-
-	if (character == EOF || character == '\n') {
-        parsingStr = (char*)malloc(strLength + 1);
-		if (!parsingStr) {
-            printf("We don't have enough memory");
-            exit(1);
+char* parseString(FILE* logFile, int* ifLast) {
+	char character;
+	char* parsingStr = (char*) malloc(1000 * sizeof(char));
+	int strLength = 0;
+	while (1) {
+		character = getc(logFile);
+		if (character != EOF && character != '\n') {
+			parsingStr[strLength] = character;
+		} else {
+			*ifLast = EOF == character;
+			parsingStr[strLength] = '\0';
+			break;
 		}
-		*ifLast = EOF == character;
-		parsingStr[strLength] = '\0';
-	} else {
-		parsingStr = scanStr(logFile, strLength + 1, ifLast);
-		parsingStr[strLength] = character;
+		++strLength;
 	}
 
-	return parsingStr;
-}
-
-
-char* parseString(FILE* logFile, int* ifLast) {
-    char* tmp;
-	char* parsingStr = scanStr(logFile, 0, ifLast);
-
-	strtok_r(parsingStr, "[", &tmp);
-	dateStr = strtok_r(NULL, "]", &tmp);
-	strtok_r(NULL, "\"", &tmp);
-	curReqStr = strtok_r(NULL, "\"", &tmp);
-	statusStr = strtok_r(NULL, " ", &tmp);
+	strtok(parsingStr, "[");
+	dateStr = strtok(NULL, "]");
+	strtok(NULL, "\"");
+	curReqStr = strtok(NULL, "\"");
+	statusStr = strtok(NULL, " ");
 	return parsingStr;
 }
 
@@ -105,11 +116,11 @@ void printIf1(FILE* inputFile) {
     int failedReq = 0;
     int ifLast = 0;
     while(!ifLast) {
-		char* stringTemp = parseString(inputFile, &ifLast);
-		if (statusStr != NULL)
+	char* stringTemp = parseString(inputFile, &ifLast);
+	if (statusStr != NULL)
             if (*statusStr == '5')
-                printf("\n%d. %s", ++failedReq, curReqStr);;
-		free(stringTemp);
+                printf("\n%d. %s", ++failedReq, curReqStr);
+	free(stringTemp);
 	}
 	printf("\n\nCount of all failed requests: %d", failedReq);
 }
@@ -118,7 +129,7 @@ void printIf1(FILE* inputFile) {
 void printIf2(FILE* inputFile, Queue* reqs) {
     int ifLast = 0;
     int maxCount = -1;
-    int beginOfPeriod, endOfPeriod;
+    int beginOfPeriod;
 
     unsigned long long needPeriod;
 	printf("Please write need period in seconds: ");
@@ -138,17 +149,14 @@ void printIf2(FILE* inputFile, Queue* reqs) {
 			int reqsCount = lineNum - reqs->head->requestNumber + 1;
 			if (reqsCount > maxCount) {
 				beginOfPeriod = reqs->head->dateReq;
-				endOfPeriod = dateReqSec;
 				maxCount = reqsCount;
 			}
 		}
 		free(tmp);
 	}
-	printf("\nThe largest amount of requests: %d\n", maxCount);
+	printf("\nThe largest number of requests: %d\n", maxCount);
 	time_t period = beginOfPeriod;
-	printf("\nIn period from: %s", asctime(localtime(&period)));
-	period = endOfPeriod;
-	printf("To: %s\n", asctime(localtime(&period)));
+	printf("In period from: %s\n", ctime(&period));
 }
 
 
@@ -157,15 +165,15 @@ int main() {
 	logFile = fopen("access_log_Jul95.txt", "r");
 
 	Queue* reqs = (Queue*)calloc(1, sizeof(Queue));
-    reqs->head = reqs->tail = NULL;
+    	reqs->head = reqs->tail = NULL;
 
 	int numberOfTask;
 	printf("Please write the number of the task: ");
 	scanf("%d", &numberOfTask);
 	if (numberOfTask == 1)
-        printIf1(logFile);
-    else
-        printIf2(logFile, reqs);
-    fclose(logFile);
+        	printIf1(logFile);
+    	else
+        	printIf2(logFile, reqs);
+    	fclose(logFile);
 	return 0;
 }
